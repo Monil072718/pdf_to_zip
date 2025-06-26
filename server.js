@@ -9,16 +9,14 @@ const path = require('path');
 
 const app = express();
 
-// ====================== MIDDLEWARE SETUP ======================
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// ====================== FILE UPLOAD CONFIG ======================
+// File upload config
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (!fs.existsSync('uploads')) {
-      fs.mkdirSync('uploads');
-    }
+    if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
     cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
@@ -27,30 +25,27 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ====================== EMAIL TRANSPORTER ======================
+// Email transporter
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'your@gmail.com',
-    pass: process.env.EMAIL_PASS || 'your-password-or-app-password'
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
-// ====================== API ENDPOINT ======================
+// API Endpoint
 app.post('/api/zip-and-send', upload.array('pdfs', 2), async (req, res) => {
   try {
     const { email } = req.body;
     const files = req.files;
 
-    // Validate input
     if (!files || files.length < 2) {
       return res.status(400).json({ error: 'Please upload exactly 2 PDF files' });
     }
 
-    // ========== ZIP CREATION ==========
+    // Create ZIP with both PDFs
     const zip = new AdmZip();
-    
-    // Add both PDFs to the zip with their original names
     files.forEach(file => {
       zip.addLocalFile(file.path, '', file.originalname);
     });
@@ -58,9 +53,9 @@ app.post('/api/zip-and-send', upload.array('pdfs', 2), async (req, res) => {
     const zipPath = path.join(__dirname, 'pdf_files.zip');
     zip.writeZip(zipPath);
 
-    // ========== EMAIL SENDING ==========
+    // Send email
     await transporter.sendMail({
-      from: `"PDF Zipper" <${process.env.EMAIL_USER || 'your@gmail.com'}>`,
+      from: `"PDF Zipper" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Your PDF Files',
       text: 'Please find your PDF files attached in a zip archive.',
@@ -70,14 +65,14 @@ app.post('/api/zip-and-send', upload.array('pdfs', 2), async (req, res) => {
       }]
     });
 
-    // ========== CLEANUP ==========
+    // Cleanup
     files.forEach(file => fs.unlinkSync(file.path));
-    if (fs.existsSync(zipPath)) fs.unlinkSync(zipPath);
+    fs.unlinkSync(zipPath);
 
     res.json({ 
       success: true, 
       message: 'PDFs zipped and sent successfully!',
-      fileNames: files.map(file => file.originalname) 
+      files: files.map(file => file.originalname) 
     });
   } catch (error) {
     console.error('Error:', error);
@@ -88,9 +83,8 @@ app.post('/api/zip-and-send', upload.array('pdfs', 2), async (req, res) => {
   }
 });
 
-// ====================== SERVER START ======================
+// Start server
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`API Endpoint: http://localhost:${PORT}/api/zip-and-send`);
 });

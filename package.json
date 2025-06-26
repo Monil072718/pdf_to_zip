@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-ses": "^3.835.0",
+    "@sendgrid/mail": "^8.1.5",
     "adm-zip": "^0.5.16",
     "archiver": "^7.0.1",
     "cors": "^2.8.5",
@@ -18,6 +19,7 @@
     "express": "^5.1.0",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.3",
-    "pdf-lib": "^1.17.1"
+    "pdf-lib": "^1.17.1",
+    "resend": "^4.6.0"
   }
 }
